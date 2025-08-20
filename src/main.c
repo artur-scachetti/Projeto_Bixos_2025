@@ -8,6 +8,8 @@ QueueHandle_t target_rpm_queue;
 pcnt_unit_handle_t left_encoder;
 pcnt_unit_handle_t right_encoder;
 
+float valpidR = 0, valpidL = 0;
+
 void init_all()
 {
     init_gpio(LEFT_MOTOR);
@@ -36,7 +38,8 @@ void task_motor_control()
             right_pid->target_rpm = target_rpm.target_right_rpm;
         }
 
-        pid_calculate(left_encoder, left_pid, right_encoder, right_pid);
+        pid_calculate(left_pid, LEFT_MOTOR, target_rpm.target_left_rpm, &valpidL);
+        pid_calculate(right_pid, RIGHT_MOTOR, target_rpm.target_right_rpm, &valpidR);
 
         vTaskDelay(pdMS_TO_TICKS(2 * FREQ_COMUNICATION));
     }
@@ -44,6 +47,7 @@ void task_motor_control()
 
 void i2c_task_com()
 {
+    
     rpm_data_t last_rpm = {0,0};
     target_rpm_data_t last_target_rpm = {0,0};
     

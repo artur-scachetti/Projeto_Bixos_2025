@@ -25,7 +25,6 @@ typedef enum
     ENCODER_LEFT = 0,
     ENCODER_RIGHT = 1
 
-
 } encoder_side_t;
 
 #define ENCODER_INPUT_A(NUM) NUM == (ENCODER_LEFT) ? ENCODER_CHA_L1 : ENCODER_CHA_R1

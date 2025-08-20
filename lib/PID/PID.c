@@ -1,78 +1,169 @@
 #include "PID.h"
 
-const char *TAG_PID_L = "LEFT PID";
-const char *TAG_PID_R = "RIGHT PID";
+const char *TAG_PID = "PID";
+const char *TAG_PID_CTRL = "PID CTRL";
+
+esp_err_t pid_new_control_block(const pid_ctrl_config_t *config, pid_ctrl_block_handle_t *status_pid)
+{
+    esp_err_t ret = ESP_OK;
+    pid_ctrl_block_t *pid = NULL;
+
+    /* Check the input pointer */
+    ESP_GOTO_ON_FALSE(config && status_pid, ESP_ERR_INVALID_ARG, err, TAG_PID_CTRL, "invalid argument");
+
+    pid = calloc(1, sizeof(pid_ctrl_block_t));
+    ESP_GOTO_ON_FALSE(pid, ESP_ERR_NO_MEM, err, TAG_PID_CTRL, "not enough memory");
+    ESP_GOTO_ON_ERROR(pid_update_parameters(pid, &config->init_param), err, TAG_PID_CTRL, "init PID parameters failed");
+
+    *status_pid = pid;
+    return ret;
+
+    err:
+    if (pid) {
+        free(pid);
+    }
+    return ret;
+}
+
+esp_err_t pid_update_parameters(pid_ctrl_block_handle_t pid, const pid_ctrl_parameter_t *params)
+{
+    ESP_RETURN_ON_FALSE(pid && params, ESP_ERR_INVALID_ARG, TAG_PID_CTRL, "invalid argument");
+    pid->kp = params->kp;
+    pid->ki = params->ki;
+    pid->kd = params->kd;
+    pid->max_output = params->max_output;
+    pid->min_output = params->min_output;
+    pid->max_integral = params->max_integral;
+    pid->min_integral = params->min_integral;
+    /* Set the calculate function according to the PID type */
+    switch (params->cal_type) {
+    case PID_CAL_TYPE_INC:
+        pid->calculate_func = pid_calc_incremental();
+        break;
+    case PID_CAL_TYPE_POS:
+        pid->calculate_func = pid_calc_positional();
+        break;
+    default:
+        ESP_RETURN_ON_FALSE(false, ESP_ERR_INVALID_ARG, TAG_PID_CTRL, "invalid PID calculation type:%d", params->cal_type);
+    }
+    return ESP_OK;
+}
+
+esp_err_t pid_compute(pid_ctrl_block_handle_t pid, float input_error, float *ret_result)
+{
+    ESP_RETURN_ON_FALSE(pid && ret_result, ESP_ERR_INVALID_ARG, TAG_PID_CTRL, "invalid args");
+
+    *ret_result = pid->calculate_func(pid, input_error);
+
+    return ESP_OK;
+}
+
+esp_err_t pid_reset_ctrl_block(pid_ctrl_block_handle_t pid)
+{
+    ESP_RETURN_ON_FALSE(pid, ESP_ERR_INVALID_ARG, TAG_PID_CTRL, "invalid arg");
+
+    pid->integral_error = 0;
+    pid->last_output = 0;
+    pid->previous_error1 = 0;
+    pid->previous_error2 = 0;
+
+    return ESP_OK;
+}
+
+esp_err_t pid_delete_ctrl_block(pid_ctrl_block_handle_t pid)
+{
+    ESP_RETURN_ON_FALSE(pid, ESP_ERR_INVALID_ARG, TAG_PID_CTRL, "invalid arg");
+
+    free(pid);
+
+    return ESP_OK;
+}
 
 //Inicializa e configura o PID (retorna o 'pid_ctrl_block_handle_t' pronto)
 pid_ctrl_block_handle_t init_pid(motor_side_t motor)
 {
-    pid_ctrl_block_handle_t pid = malloc(sizeof(pid_ctrl_block_t));
 
-    pid->kp = 1.0;
-    pid->ki = 0.1;
-    pid->kd = 0.05;
+    pid_ctrl_parameter_t pid_param = {
 
-    pid->conversion_rate = 10;
-    pid->target_rpm = 180;
+        .kp = kp(motor),
+        .ki = ki(motor),
+        .kd = kd(motor),
 
-    pid->setpoint = 0;
-    pid->integral = 0;
-    pid->previous_error = 0;
+        .max_integral = max_integral(motor),
+        .min_integral = min_integral(motor),
 
-    pid->output_max = 1023;
+        .max_output = max_output(motor),
+        .min_output = min_output(motor),
 
+        .cal_type = PID_CAL_TYPE_INC
+    };
+
+    pid_ctrl_config_t pid_ctrl_config = {
+
+        .init_param = pid_param
+    };
+
+    pid_ctrl_block_handle_t pid;
+
+    ESP_ERROR_CHECK(pid_new_control_block(&pid_param, &pid));
     return pid;
 }
 
-//Aplica o controle PID sobre o erro do RPM, atualizando o PMW dos motores
-void pid_calculate(pcnt_unit_handle_t left_encoder, pid_ctrl_block_handle_t left_pid, pcnt_unit_handle_t right_encoder, 
-                   pid_ctrl_block_handle_t right_pid)
+static float pid_calculate_positional(pid_ctrl_block_t *pid, float error)
 {
-    double interval = 2 * FREQ_COMUNICATION / 1000.0; //Converte a frequência de comunicação (100ms) p/ segundos
+    float output = 0;
+
+    pid->integral_error += error;
+
+    pid->integral_error = MIN(pid->integral_error, pid->max_integral);
+    pid->integral_error = MAX(pid->integral_error, pid->min_integral);
+
+    output = error*pid->kp + (error - pid->previous_error1)*pid->kd + pid->integral_error*pid->ki;
+
+    output = MIN(output, pid->max_output);
+    output = MAX(output, pid->min_output);
+
+    pid->previous_error1 = error;
+
+    return output;
+}
+
+static float pid_calculate_incremental(pid_ctrl_block_t *pid, float error)
+{
+    float output = 0;
+
+    output = (error - pid->previous_error1) * pid->kd + (error - 2*pid->previous_error1 + pid->previous_error2) * pid->kd 
+             + error *pid->ki + pid->last_output;
+
+    output = MIN(output, pid->max_output);
+    output = MAX(output, pid->min_output);
+
+    pid->previous_error2 = pid->previous_error1;
+    pid->previous_error1 = error;
     
-    float left_pulses = pulse_count(left_encoder);
-    float right_pulses = pulse_count(right_encoder);
+    pid->last_output = output;
 
-    float left_rpm = left_pulses*left_pid->conversion_rate;
-    float right_rpm = right_pulses*right_pid->conversion_rate;
+    return output;
+}
+//Aplica o controle PID sobre o erro do RPM, atualizando o PMW dos motores
+esp_err_t pid_calculate(pid_ctrl_block_handle_t pid, motor_side_t motor, float target_rpm, float* inc_value)
+{
+    encoder_side_t encoder = ((motor == RIGHT_MOTOR) ? ENCODER_RIGHT : ENCODER_LEFT);
 
-    float left_error = left_pid->target_rpm - left_rpm;
-    float right_error = right_pid->target_rpm - right_rpm;
+    float conversion_rate = 0;
+    float current_rpm = pulse_count(encoder) * conversion_rate;
 
-    left_pid->integral += left_error*interval;
-    if (left_pid->integral > MAX_PWM)
-        left_pid->integral = MAX_PWM;
+    float error = target_rpm - current_rpm;
 
-    else if (left_pid->integral < -MAX_PWM)
-        left_pid->integral = -MAX_PWM;
+    float value;
 
-    right_pid->integral += right_error*interval;
-    if (right_pid->integral > MAX_PWM)
-        right_pid->integral = MAX_PWM;
+    ESP_ERROR_CHECK(pid_compute(pid, error, &value));
+    value *= (1/conversion_rate);
+    *inc_value += value;
 
-    else if (right_pid->integral < -MAX_PWM)
-        right_pid->integral = -MAX_PWM;
+    update_motor(motor, *inc_value);
 
-    float left_derivative = (left_error - left_pid->previous_error)/interval;
-    float right_derivative = (right_error - right_pid->previous_error)/interval;
+    ESP_LOGI(TAG_PID, "Alvo: %f, | Erro: %f, | PID: %f\n", target_rpm, error, *inc_value);
 
-    float left_pwm_output = (int)(left_pid->kp*left_error + left_pid->ki*left_pid->integral + left_pid->kd*left_derivative);
-        if (left_pwm_output > MAX_PWM)
-            left_pwm_output = MAX_PWM;
-
-        else if (left_pwm_output < -MAX_PWM)
-            left_pwm_output = -MAX_PWM;
-    
-    float right_pwm_output = (int)(right_pid->kp*right_error + right_pid->ki*right_pid->integral + right_pid->kd*right_derivative);
-        if (right_pwm_output > MAX_PWM)
-            right_pwm_output = MAX_PWM;
-
-        else if (right_pwm_output < -MAX_PWM)
-            right_pwm_output = -MAX_PWM;
-
-    ESP_LOGI(TAG_PID_L, "Target RPM: %.2f | RPM: %.2f | PWM: %.2f", left_pid->target_rpm, left_rpm, left_pwm_output);
-    ESP_LOGI(TAG_PID_R, "Target RPM: %.2f | RPM: %.2f | PWM: %.2f", right_pid->target_rpm, right_rpm, right_pwm_output);
-
-    update_motor(LEFT_MOTOR, left_pwm_output);
-    update_motor(RIGHT_MOTOR, right_pwm_output);
+    return ESP_OK;
 }
