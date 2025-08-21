@@ -25,7 +25,7 @@ void i2c_read_task(target_rpm_data_t last_target_rpm)
     uint8_t data[8];
 
     //Recebe da Rasp
-    int buffer = i2c_slave_read_buffer(I2C_SLAVE_NUM, data, sizeof(data), 0);
+    int buffer = i2c_slave_read_buffer(I2C_SLAVE_NUM, data, sizeof(data), 10);
     if(buffer == sizeof(data))
     {
 

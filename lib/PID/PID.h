@@ -102,6 +102,8 @@ static float pid_calculate_positional(pid_ctrl_block_t *pid, float error);
 
 static float pid_calculate_incremental(pid_ctrl_block_t *pid, float error);
 
+void PWM_limit(float*);
+
 esp_err_t pid_calculate(pid_ctrl_block_handle_t pid, motor_side_t motor, float target_rpm, float* inc_value);
 
 #endif
