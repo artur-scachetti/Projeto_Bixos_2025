@@ -1,3 +1,4 @@
+/*
 #include "I2C.h"
 
 //Inicializa e configura o dispositivo como Servo
@@ -40,8 +41,7 @@ void i2c_read_task(target_rpm_data_t last_target_rpm)
 
     else if(buffer == 0)
     {
-        ESP_LOGW("I2C", "Nenhum byte lido, reiniciando I2C...");
-        //reset_i2c(I2C_SLAVE_NUM);
+        ESP_LOGW("I2C", "Nenhum byte lido");
     }
 
     memcpy(&target_rpm.target_left_rpm, &data[0], 4);
@@ -84,3 +84,5 @@ void i2c_write_task(rpm_data_t last_rpm)
     
 
 }
+
+*/

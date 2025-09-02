@@ -34,8 +34,8 @@ void teste_pid()
 
     target_rpm_data_t target_rpm;
 
-    target_rpm.target_left_rpm = 0;
-    target_rpm.target_right_rpm = 0;
+    target_rpm.target_left_rpm = 50;
+    target_rpm.target_right_rpm = 50;
 
     int contador = 0;
     
@@ -45,6 +45,7 @@ void teste_pid()
         pid_calculate(left_pid, LEFT_MOTOR, target_rpm.target_left_rpm, &valpidL, left_encoder);
         pid_calculate(right_pid, RIGHT_MOTOR, target_rpm.target_right_rpm, &valpidR, right_encoder);
 
+        /*
         if(contador < 1250)
         {
             target_rpm.target_left_rpm += 0.1592;
@@ -55,12 +56,12 @@ void teste_pid()
             target_rpm.target_left_rpm = 200;
             target_rpm.target_right_rpm = 200;
         }
-        
+        */
+
         vTaskDelay(pdMS_TO_TICKS(20));
 
-        ESP_LOGI("PID teste", "Alvo L: %f, Alvo R: %f", target_rpm.target_left_rpm, target_rpm.target_right_rpm);
-
         contador++;
+        
     }
 
     pid_del_control_block(left_pid);
@@ -118,10 +119,9 @@ void app_main()
 
     teste_pid();
     
-    xTaskCreatePinnedToCore(task_motor_control, "task_motor_control", 4096, NULL, 1, NULL, 0);
+    //xTaskCreatePinnedToCore(task_motor_control, "task_motor_control", 4096, NULL, 1, NULL, 0);
     //xTaskCreatePinnedToCore(i2c_task_com, "i2c_task_com", 4096, NULL, 1, NULL, 1);
     
-
 }
 
 

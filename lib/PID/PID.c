@@ -56,7 +56,7 @@ esp_err_t pid_calculate(pid_ctrl_block_handle_t pid, motor_side_t motor, float t
     float value;
 
     ESP_ERROR_CHECK(pid_compute(pid, error, &value));
-    value *= (1/conversion_rate);
+
     *inc_value += value;
 
     PWM_limit(inc_value);

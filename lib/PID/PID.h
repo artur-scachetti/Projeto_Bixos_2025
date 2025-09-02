@@ -7,7 +7,7 @@
 #include "esp_check.h"
 #include "pid_ctrl.h"
 
-#define KP_R 1
+#define KP_R 3
 #define KI_R 0
 #define KD_R 0
 #define MAX_OUTPUT_R 1023
@@ -15,7 +15,7 @@
 #define MAX_INTEGRAL_R 1023
 #define MIN_INTEGRAL_R -1023
 
-#define KP_L 1
+#define KP_L 3
 #define KI_L 0
 #define KD_L 0
 #define MAX_OUTPUT_L 1023

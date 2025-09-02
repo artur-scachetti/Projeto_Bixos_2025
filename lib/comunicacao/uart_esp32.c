@@ -15,7 +15,7 @@ void init_uart_read(QueueHandle_t queue)
 
     uart_param_config(UART_PORT_NUM_READ, &uart_config);
     uart_set_pin(UART_PORT_NUM_READ, TXD_PIN, RXD_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
-    uart_driver_install(UART_PORT_NUM_READ, BUFFER_LEN, 0, 0, queue, 0);
+    uart_driver_install(UART_PORT_NUM_READ, BUFFER_LEN, 0, 0, &queue, 0);
 }
 
 uint8_t crc_calc(uint8_t *data, int len)
@@ -71,7 +71,7 @@ void init_uart_write(QueueHandle_t queue)
 
     uart_param_config(UART_PORT_NUM_WRITE, &uart_config);
     uart_set_pin(UART_PORT_NUM_WRITE, TXD_PIN, RXD_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
-    uart_driver_install(UART_PORT_NUM_WRITE, BUFFER_LEN, 0, 0, queue, 0);
+    uart_driver_install(UART_PORT_NUM_WRITE, BUFFER_LEN, 0, 0, &queue, 0);
 }
 
 void send_data(float left_rpm, float right_rpm)
