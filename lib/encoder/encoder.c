@@ -75,9 +75,10 @@ float pulse_count(pcnt_unit_handle_t encoder)
 {
     int pulse_count = 0;
 
-    ESP_ERROR_CHECK(pcnt_unit_get_count(encoder, &pulse_count));
-    
     pcnt_unit_clear_count(encoder);
+    
+    ESP_ERROR_CHECK(pcnt_unit_get_count(encoder, &pulse_count));
+    ESP_LOGI(TAG_ENCODER, "%f", pulse_count*0.00475);
 
     return pulse_count;
 }

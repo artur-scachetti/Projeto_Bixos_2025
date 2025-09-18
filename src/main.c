@@ -29,43 +29,9 @@ void init_all()
 
 void teste_pid()
 {
-    pid_ctrl_block_handle_t left_pid = init_pid(LEFT_MOTOR);
-    pid_ctrl_block_handle_t right_pid = init_pid(RIGHT_MOTOR);
-
-    target_rads_data_t target_rads;
-
-    target_rads.target_left_rads = 50;
-    target_rads.target_right_rads = 50;
-
-    int contador = 0;
-    
-    while(contador != 1500)
-    {
-    
-        pid_calculate(left_pid, LEFT_MOTOR, target_rads.target_left_rads, &valpidL, left_encoder);
-        pid_calculate(right_pid, RIGHT_MOTOR, target_rads.target_right_rads, &valpidR, right_encoder);
-
-        /*
-        if(contador < 1250)
-        {
-            target_rpm.target_left_rpm += 0.1592;
-            target_rpm.target_right_rpm += 0.1592;
-        }
-        else
-        {
-            target_rpm.target_left_rpm = 200;
-            target_rpm.target_right_rpm = 200;
-        }
-        */
-
-        vTaskDelay(pdMS_TO_TICKS(20));
-
-        contador++;
-        
-    }
-
-    pid_del_control_block(left_pid);
-    pid_del_control_block(right_pid);
+    pid_ctrl_block_handle_t pid = init_pid(LEFT_MOTOR);
+    pid_calculate(pid, LEFT_MOTOR, 25, &valpidR, left_encoder);
+    vTaskDelay(pdMS_TO_TICKS(10));
 }
 
 void task_motor_control()
@@ -85,7 +51,7 @@ void task_motor_control()
 
         }
         
-        vTaskDelay(pdMS_TO_TICKS(2 * FREQ_COMUNICATION));
+        vTaskDelay(pdMS_TO_TICKS(FREQ_COMUNICATION));
     }
 }
 
@@ -117,7 +83,13 @@ void app_main()
     rads_queue = xQueueCreate(10, sizeof(rads_data_t));
     target_rads_queue = xQueueCreate(10, sizeof(target_rads_data_t));
 
-    teste_pid();
+    //teste_uart_esp();
+
+    while(1)
+    {
+        teste_pid();
+    }
+    
     
     //xTaskCreatePinnedToCore(task_motor_control, "task_motor_control", 4096, NULL, 1, NULL, 0);
     //xTaskCreatePinnedToCore(i2c_task_com, "i2c_task_com", 4096, NULL, 1, NULL, 1);

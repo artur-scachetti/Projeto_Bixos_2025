@@ -35,4 +35,6 @@ void receive_data();
 void init_uart_write(QueueHandle_t queue);
 void send_data(float left_rpm, float right_rpm);
 
+void teste_uart_esp();
+
 #endif

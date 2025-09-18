@@ -48,8 +48,8 @@ void PWM_limit(float* PWM)
 //Aplica o controle PID sobre o erro do RPM, atualizando o PMW dos motores
 esp_err_t pid_calculate(pid_ctrl_block_handle_t pid, motor_side_t motor, float target_rads, float* inc_value, pcnt_unit_handle_t encoder)
 {
-    float conversion_rate = 1;
-    float current_rads = pulse_count(encoder) * conversion_rate;
+    float conversion_rate = 0.00475;
+    float current_rads = pulse_count(encoder) * conversion_rate/pdMS_TO_TICKS(FREQ_COMUNICATION);
 
     float error = target_rads - current_rads;
 

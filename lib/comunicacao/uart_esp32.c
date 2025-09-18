@@ -1,4 +1,5 @@
 #include "uart_esp32.h"
+#include "h_bridge.h"
 
 static const char *UART_TAG = "UART_ESP32";
 
@@ -89,4 +90,27 @@ void send_data(float left_rads, float right_rads)
     data[9] = crc_calc(&data[1], 8);
 
     uart_write_bytes(UART_PORT_NUM_WRITE, (const char *)data, sizeof(data));
+}
+
+
+void teste_uart_esp()
+{
+    //teste 1 - recebe um float e printa
+
+    uint8_t data[4];
+
+    uart_read_bytes(UART_PORT_NUM_READ, data, sizeof(float), pdMS_TO_TICKS(100));
+
+    float data_float;
+    memcpy(&data_float, data, sizeof(float));
+    
+    printf("%f", data_float);
+
+    //teste 2 - teclado (vel infinita)
+
+    // uint8_t data2[1];
+
+    // uart_read_bytes(UART_PORT_NUM_READ, data2, 1, pdMS_TO_TICKS(10));
+
+
 }
