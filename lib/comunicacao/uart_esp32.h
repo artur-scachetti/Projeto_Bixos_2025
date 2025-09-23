@@ -13,7 +13,7 @@
 #define UART_PORT_NUM_READ      UART_NUM_0
 #define UART_PORT_NUM_WRITE     UART_NUM_1
 
-#define BUFFER_LEN      1024
+#define BUFFER_LEN              1024
 
 typedef struct {
 
@@ -29,12 +29,12 @@ typedef struct {
 
 }target_rads_data_t;
 
-void init_uart_read(QueueHandle_t queue);
-uint8_t crc_calc(uint8_t *data, int len);
-void receive_data();
-void init_uart_write(QueueHandle_t queue);
-void send_data(float left_rpm, float right_rpm);
+void init_uart_read();
+target_rads_data_t receive_data();
 
-void teste_uart_esp();
+void init_uart_write();
+void send_data(rads_data_t rads);
+
+int teste_uart_esp();
 
 #endif

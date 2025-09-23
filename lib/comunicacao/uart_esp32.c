@@ -1,13 +1,15 @@
 #include "uart_esp32.h"
 #include "h_bridge.h"
+#include "PID.h"
+#include "encoder.h"
 
 static const char *UART_TAG = "UART_ESP32";
 
-void init_uart_read(QueueHandle_t queue)
+void init_uart_read()
 {
     const uart_config_t uart_config = {
 
-        .baud_rate = 9600,
+        .baud_rate = 115200,
         .data_bits = UART_DATA_8_BITS,
         .parity = UART_PARITY_DISABLE,
         .stop_bits = UART_STOP_BITS_1,
@@ -16,54 +18,46 @@ void init_uart_read(QueueHandle_t queue)
 
     uart_param_config(UART_PORT_NUM_READ, &uart_config);
     uart_set_pin(UART_PORT_NUM_READ, TXD_PIN, RXD_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
-    uart_driver_install(UART_PORT_NUM_READ, BUFFER_LEN, 0, 0, &queue, 0);
+    uart_driver_install(UART_PORT_NUM_READ, BUFFER_LEN, 0, 0, 0, 0);
 }
 
-uint8_t crc_calc(uint8_t *data, int len)
-{
-    uint8_t crc = 0;
-    
-    for(int i = 0; i < len; i++)
-    {
-        crc ^= data[i];
-    }
-
-    return crc;
-}
-
-void receive_data()
+target_rads_data_t receive_data(target_rads_data_t *last_target_rads)
 {
     target_rads_data_t target_rads;
 
-    uint8_t data[9];
+    uint8_t buffer[BUFFER_LEN];
 
-    int len = uart_read_bytes(UART_PORT_NUM_READ, data, BUFFER_LEN - 1, pdMS_TO_TICKS(100));
+    int len = uart_read_bytes(UART_PORT_NUM_READ, buffer, BUFFER_LEN - 1, pdMS_TO_TICKS(100));
 
-    if(len == 9 && data[0] == 0xAA)
+    if(len>0)
     {
-        uint8_t crc_received = crc_calc(&data[1], 8);
+        buffer[len] = '\0';
 
-        if(crc_received == data[9])
+        char *token = strtok(buffer, ";");
+        if(token != NULL)
         {
-            memcpy(&target_rads.target_left_rads, &data[1], sizeof(float));
-            memcpy(&target_rads.target_right_rads, &data[5], sizeof(float));
+            target_rads.target_left_rads = atof(token);
+        }
+        
+        token = strtok(NULL, ",");
+        if(token != NULL)
+        {
+            target_rads.target_right_rads = atof(token);
+        }
 
-            ESP_LOGI(UART_TAG, "Target E: %f | Target D: %f", target_rads.target_left_rads, target_rads.target_right_rads);
-        }
-        else
-        {
-            ESP_LOGW(UART_TAG, "CRC inválido. Desejado: %u | Recebido: %u", data[9], crc_received);
-        }
+        *last_target_rads = target_rads;
+        return target_rads;
     }
 
+    return *last_target_rads;
 }
 
 
-void init_uart_write(QueueHandle_t queue)
+void init_uart_write()
 {
     const uart_config_t uart_config = {
 
-        .baud_rate = 9600,
+        .baud_rate = 115200,
         .data_bits = UART_DATA_8_BITS,
         .parity = UART_PARITY_DISABLE,
         .stop_bits = UART_STOP_BITS_1,
@@ -72,45 +66,33 @@ void init_uart_write(QueueHandle_t queue)
 
     uart_param_config(UART_PORT_NUM_WRITE, &uart_config);
     uart_set_pin(UART_PORT_NUM_WRITE, TXD_PIN, RXD_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
-    uart_driver_install(UART_PORT_NUM_WRITE, BUFFER_LEN, 0, 0, &queue, 0);
+    uart_driver_install(UART_PORT_NUM_WRITE, BUFFER_LEN, 0, 0, 0, 0);
 }
 
-void send_data(float left_rads, float right_rads)
+void send_data(rads_data_t rads)
 {
-    rads_data_t rads;
-    rads.left_rads = left_rads;
-    rads.right_rads= right_rads;
+    uint8_t buffer[BUFFER_LEN];
 
-    uint8_t data[9];
-    data[1] = 0xAA;
+    snprintf(buffer, sizeof(buffer), "%f;%f", &rads.left_rads, &rads.right_rads);
 
-    memcpy(&data[1], &rads.left_rads, sizeof(float));
-    memcpy(&data[5], &rads.right_rads, sizeof(float));
-
-    data[9] = crc_calc(&data[1], 8);
-
-    uart_write_bytes(UART_PORT_NUM_WRITE, (const char *)data, sizeof(data));
+    uart_write_bytes(UART_PORT_NUM_WRITE, (const char *)buffer, BUFFER_LEN - 1);
 }
 
 
-void teste_uart_esp()
+int teste_uart_esp()
 {
-    //teste 1 - recebe um float e printa
+    //teste 1 - recebe uma string
 
-    uint8_t data[4];
+    // uint8_t frase[50];
 
-    uart_read_bytes(UART_PORT_NUM_READ, data, sizeof(float), pdMS_TO_TICKS(100));
+    // int len = uart_read_bytes(UART_PORT_NUM_READ, frase, sizeof(frase) -1, pdMS_TO_TICKS(100));
 
-    float data_float;
-    memcpy(&data_float, data, sizeof(float));
-    
-    printf("%f", data_float);
+    // ESP_LOGI(UART_TAG, "%d", len);
 
-    //teste 2 - teclado (vel infinita)
-
-    // uint8_t data2[1];
-
-    // uart_read_bytes(UART_PORT_NUM_READ, data2, 1, pdMS_TO_TICKS(10));
-
+    // if(len>0)
+    // {
+    //     frase[len] = '\0';
+    //     ESP_LOGI(UART_TAG, "%s", frase);
+    // }
 
 }

@@ -1,10 +1,9 @@
 import serial
-import struct
 import time
-import keyboard
+import random
 
 try:
-    ser = serial.Serial('/dev/ttyUSB0', 9600, timeout=0)
+    ser = serial.Serial('/dev/ttyUSB0', 115200, timeout=0)
 
 except serial.SerialException as e:
 
@@ -12,76 +11,50 @@ except serial.SerialException as e:
     exit()
 
 
-# def crc_calc(data : bytes) -> int:
+def receive_data():
 
-#     crc = 0
-    
-#     for b in data:
-    
-#         crc ^= b
+    buffer_size = 1024
 
-#     return crc
+    while True:
 
+        try:
+            if ser.in_waiting > 0:
 
-# def receive_data():
+                data = ser.read(buffer_size)
 
-#     buffer_size = 9
+                data.split(sep = ';')
+                
+                left_rads = float(data[0])
+                right_rads = float(data[1])
 
-#     while True:
-#         try:
-#             if ser.in_waiting >= buffer_size:
-
-#                 data = ser.read(buffer_size)
-
-#                 data_bytes = data[:-1]
-#                 crc_rec = data[-1]
-
-#                 crc_val = crc_calc(data_bytes)
-
-#                 if crc_val == crc_rec:
-
-#                     left_rads, right_rads = struct.unpack('<ff', data)
-#                     print(f"Left Rad/s: {left_rads} | Right Rad/s: {right_rads}")
-
-#                 else:
-
-#                     print("Erro: CRC inválido")
-
-#             else:
-
-#                 time.sleep(0.01)    
+                print(f"Vel. motor esquerdo: {left_rads}, Vel. motor direito: {right_rads}")
             
-#         except (ValueError, serial.SerialException) as e:
+            else:
+
+                time.sleep(0.1)
+
+
+        except (serial.SerialException) as e:
             
-#             print(f"Erro ao processar dados ou na comunicação serial: {e}")
+            print(f"Erro na comunicação serial: {e}")
 
 
-def teste_uart_rasp():
+def send_data(left_rads, right_rads):
 
-#   teste 1 - manda float
+    buffer_to_send = f"{left_rads};{right_rads}\n"
 
-    data = 10
+    ser.write(buffer_to_send.encode())
+    ser.flush()
 
-    data_bytes = struct.pack("<f", data)
-
-    ser.write(data_bytes)
-
-    ser.close
-
-#     teste 2 - teclado (vel infinita)
-
-#     while True:
-
-#         if keyboard.is_pressed("Up"):
-
-#             ser.write(b'U')
-              
-#             ser.close()
-#             break
+    time.sleep(0.1)
 
 
+if __name__ == "__main__":
 
-# if __name__ == "__main__":
+    print("Mandando dados para ESP...")
 
-#     print("Mandando dados para ESP...")
-#     teste_uart_rasp()
+    num = random.randint(0, 32)
+    send_data(num, num)
+    
+    receive_data()
+    

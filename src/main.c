@@ -1,7 +1,6 @@
 #include "h_bridge.h"
 #include "encoder.h"
 #include "PID.h"
-#include "I2C.h"
 #include "uart_esp32.h"
 #include "pid_ctrl.h"
 
@@ -55,27 +54,6 @@ void task_motor_control()
     }
 }
 
-/*
-void i2c_task_com()
-{
-    
-    rpm_data_t last_rpm = {0,0};
-    target_rpm_data_t last_target_rpm = {0,0};
-    
-    ESP_ERROR_CHECK(init_i2c());
-
-    while(1)
-    {
-        i2c_read_task(last_target_rpm);
-        i2c_write_task(last_rpm);
-        
-        vTaskDelay(pdMS_TO_TICKS(FREQ_COMUNICATION));
-    }
-
-    ESP_ERROR_CHECK(i2c_driver_delete(I2C_SLAVE_NUM));
-}
-*/
-
 void app_main()
 {
     init_all();
@@ -83,16 +61,20 @@ void app_main()
     rads_queue = xQueueCreate(10, sizeof(rads_data_t));
     target_rads_queue = xQueueCreate(10, sizeof(target_rads_data_t));
 
-    //teste_uart_esp();
+    init_uart_read();
 
     while(1)
     {
-        teste_pid();
+        int res = teste_uart_esp();
+
+        if(res == 1)
+        {
+            teste_pid();
+        }
     }
     
     
     //xTaskCreatePinnedToCore(task_motor_control, "task_motor_control", 4096, NULL, 1, NULL, 0);
-    //xTaskCreatePinnedToCore(i2c_task_com, "i2c_task_com", 4096, NULL, 1, NULL, 1);
     
 }
 
