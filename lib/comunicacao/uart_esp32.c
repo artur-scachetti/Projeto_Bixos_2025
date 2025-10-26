@@ -23,11 +23,11 @@ void init_uart_read()
 
 target_rads_data_t receive_data(target_rads_data_t *last_target_rads)
 {
-    target_rads_data_t target_rads;
+    target_rads_data_t target_rads = {0,0};
 
     uint8_t buffer[BUFFER_LEN];
 
-    int len = uart_read_bytes(UART_PORT_NUM_READ, buffer, BUFFER_LEN - 1, pdMS_TO_TICKS(100));
+    int len = uart_read_bytes(UART_PORT_NUM_READ, buffer, BUFFER_LEN - 1, pdMS_TO_TICKS(50));
 
     if(len>0)
     {
@@ -39,7 +39,7 @@ target_rads_data_t receive_data(target_rads_data_t *last_target_rads)
             target_rads.target_left_rads = atof(token);
         }
         
-        token = strtok(NULL, ",");
+        token = strtok(NULL, ";");
         if(token != NULL)
         {
             target_rads.target_right_rads = atof(token);

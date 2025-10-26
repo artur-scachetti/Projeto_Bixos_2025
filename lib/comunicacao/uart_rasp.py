@@ -52,9 +52,11 @@ def send_data(left_rads, right_rads):
 if __name__ == "__main__":
 
     print("Mandando dados para ESP...")
-
-    num = 15
-    send_data(num, num)
     
-    receive_data()
+    num = 30
+
+    while(True):
+
+        send_data(num, num)
+        #receive_data()
     

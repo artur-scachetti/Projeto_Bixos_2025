@@ -11,6 +11,8 @@ QueueHandle_t target_rads_queue;
 pcnt_unit_handle_t left_encoder;
 pcnt_unit_handle_t right_encoder;
 
+const char* TAG_MAIN = "Main";
+
 float valpidR = 0, valpidL = 0;
 
 void init_all()
@@ -39,8 +41,8 @@ void task_motor_control()
         
         if(xQueueReceive(target_rads_queue, &target_rads, 0) == pdPASS)
         {
-            pid_calculate(left_pid, LEFT_MOTOR, target_rads.target_left_rads, &valpidL, left_encoder, 10);
-            pid_calculate(right_pid, RIGHT_MOTOR, target_rads.target_right_rads, &valpidR, right_encoder, 10);
+            pid_calculate(left_pid, LEFT_MOTOR, target_rads.target_left_rads, &valpidL, left_encoder);
+            pid_calculate(right_pid, RIGHT_MOTOR, target_rads.target_right_rads, &valpidR, right_encoder);
 
         }
         
@@ -62,12 +64,14 @@ void app_main()
     pid_ctrl_block_handle_t left_pid = init_pid(LEFT_MOTOR);
     pid_ctrl_block_handle_t right_pid = init_pid(RIGHT_MOTOR);
 
+    //target_rads_data_t target_rads = receive_data(&last_target_rads);
+    target_rads_data_t target_rads;
+
     while(1)
     {
-        target_rads_data_t target_rads = receive_data(&last_target_rads);
-
-        pid_calculate(left_pid, LEFT_MOTOR, target_rads.target_left_rads, &valpidR, left_encoder, 10);
-        pid_calculate(right_pid, RIGHT_MOTOR, target_rads.target_right_rads, &valpidR, left_encoder, 10);
+        target_rads = receive_data(&last_target_rads);
+        pid_calculate(left_pid, LEFT_MOTOR, target_rads.target_left_rads, &valpidR, left_encoder);
+        //pid_calculate(right_pid, RIGHT_MOTOR, target_rads.target_right_rads, &valpidR, left_encoder, 10);
     }
      
     //xTaskCreatePinnedToCore(task_motor_control, "task_motor_control", 4096, NULL, 1, NULL, 0);

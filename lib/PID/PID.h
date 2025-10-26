@@ -15,8 +15,8 @@
 #define MAX_INTEGRAL_R 1023
 #define MIN_INTEGRAL_R -1023
 
-#define KP_L 1
-#define KI_L 1
+#define KP_L 2
+#define KI_L 0.5
 #define KD_L 0
 #define MAX_OUTPUT_L 1023
 #define MIN_OUTPUT_L -1023
@@ -37,6 +37,6 @@ pid_ctrl_block_handle_t init_pid(motor_side_t motor);
 
 void PWM_limit(float*);
 
-esp_err_t pid_calculate(pid_ctrl_block_handle_t pid, motor_side_t motor, float target_rads, float* inc_value, pcnt_unit_handle_t encoder, float time);
+esp_err_t pid_calculate(pid_ctrl_block_handle_t pid, motor_side_t motor, float target_rads, float* inc_value, pcnt_unit_handle_t encoder);
 
 #endif

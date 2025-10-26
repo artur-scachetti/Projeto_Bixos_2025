@@ -77,10 +77,10 @@ float pulse_count(pcnt_unit_handle_t encoder)
 
     pcnt_unit_clear_count(encoder);
     
-    ESP_ERROR_CHECK(pcnt_unit_get_count(encoder, &pulse_count));
-    ESP_LOGI(TAG_ENCODER, "%f", pulse_count*0.00475);
+    vTaskDelay(pdMS_TO_TICKS(50));
 
-    vTaskDelay(pdMS_TO_TICKS(10));
+    ESP_ERROR_CHECK(pcnt_unit_get_count(encoder, &pulse_count));    //ticks/0,05s
+    ESP_LOGI(TAG_ENCODER, "%f", pulse_count*0.00475*0.05);          //(ticks/0,05s)*(rad/ticks)*0,05 = rad/s
     
     return pulse_count;
 }
