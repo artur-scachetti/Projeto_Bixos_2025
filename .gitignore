@@ -23,6 +23,9 @@ __pycache__/
 *.pyc
 *.pyo
 
+# Ignora links criados pelo ROS
+catkin_ws/
+
 # Node.js (se tiver)
 node_modules/
 
