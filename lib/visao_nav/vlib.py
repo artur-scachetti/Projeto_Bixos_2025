@@ -11,14 +11,13 @@ def open_webcam(device):
 def color_mask(frame):
 
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-    hls = cv2.cvtColor(frame, cv2.COLOR_BGR2HLS)
 
-    lower_yellow = np.array([18, 80, 80])
-    upper_yellow = np.array([40, 255, 255])
+    lower_yellow = np.array([15, 80, 80])
+    upper_yellow = np.array([40, 200, 200])
     yellow_mask = cv2.inRange(hsv, lower_yellow, upper_yellow)
 
-    lower_white = np.array([0, 0, 200])
-    upper_white = np.array([180, 40, 255])
+    lower_white = np.array([0, 0, 250])
+    upper_white = np.array([179, 30, 255])
     white_mask = cv2.inRange(hsv, lower_white, upper_white)
 
     r_channel = frame[:, :, 2]
@@ -26,11 +25,11 @@ def color_mask(frame):
 
     kernel = np.ones((5,5), np.uint8)
 
-    yellow_mask = cv2.morphologyEx(yellow_mask, cv2.MORPH_CLOSE, kernel, iterations=2)
+    yellow_mask = cv2.morphologyEx(yellow_mask, cv2.MORPH_CLOSE, kernel)
     yellow_mask = cv2.morphologyEx(yellow_mask, cv2.MORPH_OPEN, kernel)
 
-    white_mask = cv2.morphologyEx(white_mask, cv2.MORPH_CLOSE, kernel)
-    white_mask = cv2.morphologyEx(white_mask, cv2.MORPH_OPEN, kernel)
+    # white_mask = cv2.morphologyEx(white_mask, cv2.MORPH_CLOSE, kernel)
+    # white_mask = cv2.morphologyEx(white_mask, cv2.MORPH_OPEN, kernel)
 
     mask = cv2.bitwise_or(yellow_mask, white_mask)
     mask = cv2.bitwise_or(mask, r_mask)
@@ -88,7 +87,7 @@ def image_processing(frame):
 
     roi_edges = region_of_interest(edges)
     
-    lines = cv2.HoughLinesP(roi_edges, 1, np.pi/180, 200, minLineLength=80, maxLineGap=10)
+    lines = cv2.HoughLinesP(roi_edges, 1, np.pi/180, 200, minLineLength=10, maxLineGap=10)
 
     h, w = frame.shape[:2]
     center_x = w // 2
@@ -122,7 +121,7 @@ def image_processing(frame):
 
                 if 0 <= ix_x < w and 0 <= ix_y < h and iy_x < w and iy_y < h:
 
-                    cv2.line(frame, (ix_x, ix_y), (iy_x, iy_y), (238, 130, 238), 3)
+                    #cv2.line(frame, (ix_x, ix_y), (iy_x, iy_y), (238, 130, 238), 3)
 
                     v_line = np.array([x2 - x1, y2 - y1], dtype=float)
                     dot = np.dot(v_center_x, v_line)
@@ -133,11 +132,14 @@ def image_processing(frame):
                         angle = float(np.degrees(np.arccos(cos_theta)))
                     else:
                         angle = 90.0
+                        closest_inter = (ix_x, ix_y)
+                        cv2.circle(frame, closest_inter, 6, (0, 255, 255), -1)
 
                     if angle < min_angle or (angle == min_angle and ix_y > max_inter_y):
                         min_angle = angle
                         min_angle_line = (x1, y1, x2, y2)
                         closest_inter = (ix_x, ix_y)
+                        cv2.circle(frame, closest_inter, 6, (0, 255, 255), -1)
                         max_inter_y = ix_y
 
         for y in range(0, h, step):
@@ -174,7 +176,6 @@ def image_processing(frame):
     if min_angle_line is not None and closest_inter is not None:
         x1, y1, x2, y2 = min_angle_line
         #cv2.line(frame, (x1, y1), (x2, y2), (0, 255, 255), 2)
-        cv2.circle(frame, closest_inter, 6, (0, 255, 255), -1)
         cv2.putText(frame, f"Menor angulo: {min_angle:.2f}°", (10, h - 20),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 1)
 

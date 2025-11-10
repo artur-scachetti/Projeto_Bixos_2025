@@ -45,7 +45,7 @@ class NavigationNode():
         self.current_vel.linear.x = msg.linear.x
         self.current_vel.angular.z = msg.angular.z
 
-    def synced_cb(self, area_l_msg, area_r_msg, angle_msg, intersection_msg):
+    def synched_cb(self, area_l_msg, area_r_msg, angle_msg, intersection_msg):
 
         self.area_l = area_l_msg.data
         self.area_r = area_r_msg.data
