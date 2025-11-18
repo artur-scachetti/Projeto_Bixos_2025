@@ -1,0 +1,8 @@
+
+
+
+   Vi = 15 * WHEEL_RADIUS
+
+   Vi = D / T
+
+   T = D / Vi

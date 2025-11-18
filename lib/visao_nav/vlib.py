@@ -28,8 +28,8 @@ def color_mask(frame):
     yellow_mask = cv2.morphologyEx(yellow_mask, cv2.MORPH_CLOSE, kernel)
     yellow_mask = cv2.morphologyEx(yellow_mask, cv2.MORPH_OPEN, kernel)
 
-    # white_mask = cv2.morphologyEx(white_mask, cv2.MORPH_CLOSE, kernel)
-    # white_mask = cv2.morphologyEx(white_mask, cv2.MORPH_OPEN, kernel)
+    white_mask = cv2.morphologyEx(white_mask, cv2.MORPH_CLOSE, kernel)
+    white_mask = cv2.morphologyEx(white_mask, cv2.MORPH_OPEN, kernel)
 
     mask = cv2.bitwise_or(yellow_mask, white_mask)
     mask = cv2.bitwise_or(mask, r_mask)
