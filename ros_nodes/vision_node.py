@@ -14,6 +14,9 @@ class VisionNode():
         self.pub_min_angle = rospy.Publisher('/vision/min_angle', Float32, queue_size=10)
         self.pub_intersection = rospy.Publisher('/vision/intersection', Point, queue_size=10)
 
+        self.closest_inter = 0
+        self.min_angle = 0
+
         self.rate = rospy.Rate(10)
 
     def open_webcam(self, device):
@@ -97,6 +100,73 @@ class VisionNode():
         return int(px), int(py)
 
 
+    def image_processing(self, frame):
+
+        masked_frame = self.color_mask(frame)
+
+        edges = self.sobel_edges(masked_frame, ksize=3, thresh=(50,255))
+
+        roi_edges = self.region_of_interest(edges)
+    
+        lines = cv2.HoughLinesP(roi_edges, 1, np.pi/180, 200, minLineLength=10, maxLineGap=10)
+
+        h, w = frame.shape[:2]
+        center_x = w // 2
+        ref_y = 2* h // 3
+        cv2.line(frame, (center_x, 0), (center_x, h), (255, 0, 0), 2)
+        cv2.line(frame, (0, ref_y), (w, ref_y), (255, 0, 0), 2)
+
+        center_line_x = (center_x, 0, center_x, h)
+        ref_line_y = (0, ref_y, w, ref_y)
+        v_center_x = np.array([0, h], dtype=float)
+
+        min_angle = 90.0
+        min_angle_line = None
+        closest_inter = None
+        max_inter_y = -1
+
+        if lines is not None:
+            for x1, y1, x2, y2 in lines[:, 0]:
+                cv2.line(frame, (x1, y1), (x2, y2), (255, 199, 209), 3)
+
+                inter_x = self.line_intersection(center_line_x, (x1, y1, x2, y2))
+                inter_y = self.line_intersection(ref_line_y, (x1, y1, x2, y2))
+
+                if inter_x is not None and inter_y is not None:
+                    ix_x, ix_y = inter_x
+                    iy_x, iy_y = inter_y
+
+                if 0 <= ix_x < w and 0 <= ix_y < h and iy_x < w and iy_y < h:
+
+                    #cv2.line(frame, (ix_x, ix_y), (iy_x, iy_y), (238, 130, 238), 3)
+
+                    v_line = np.array([x2 - x1, y2 - y1], dtype=float)
+                    dot = np.dot(v_center_x, v_line)
+                    norms = np.linalg.norm(v_center_x) * np.linalg.norm(v_line)
+
+                    if norms > 1e-6:
+                        cos_theta = np.clip(dot / norms, -1.0, 1.0)
+                        angle = float(np.degrees(np.arccos(cos_theta)))
+                    else:
+                        angle = 90.0
+                        cv2.circle(frame, closest_inter, 6, (0, 255, 255), -1)
+
+                    if angle < min_angle or (angle == min_angle and ix_y > max_inter_y):
+                        self.min_angle = angle
+                        min_angle_line = (x1, y1, x2, y2)
+                        self.closest_inter = (ix_x, ix_y)
+                        cv2.circle(frame, closest_inter, 6, (0, 255, 255), -1)
+                        max_inter_y = ix_y
+
+        if min_angle_line is not None and closest_inter is not None:
+            x1, y1, x2, y2 = min_angle_line
+            #cv2.line(frame, (x1, y1), (x2, y2), (0, 255, 255), 2)
+            cv2.putText(frame, f"Menor angulo: {min_angle:.2f}°", (10, h - 20),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 1)
+
+        return frame
+
+
     def run(self):
 
         cap = self.open_webcam(2)
@@ -110,22 +180,20 @@ class VisionNode():
                 rospy.logwarn("Não foi possível capturar frame")
                 break
 
-            frame, area_left, area_right, closest_inter, min_angle, h = image_processing(frame)
+            frame = self.image_processing(frame)
 
-            pub_area_l.publish(area_left)
-            pub_area_r.publish(area_right)
-            pub_min_angle.publish(min_angle)
+            self.pub_min_angle.publish(self.min_angle)
             
             intersec_msg = Point()
-            if closest_inter is not None:
-                intersec_msg.x = float(closest_inter[0])
-                intersec_msg.y = float(closest_inter[1])
+            if self.closest_inter is not None:
+                intersec_msg.x = float(self.closest_inter[0])
+                intersec_msg.y = float(self.closest_inter[1])
                 intersec_msg.z = 0.0
             
             else:
                 intersec_msg.x = intersec_msg.y = intersec_msg.z = 0.0
             
-            pub_intersection.publish(intersec_msg)
+            self.pub_intersection.publish(intersec_msg)
 
 
             cv2.imshow('Linhas', frame)
@@ -133,7 +201,7 @@ class VisionNode():
             if cv2.waitKey(1) == ord('q'):
                 break
 
-            rate.sleep()
+            self.rate.sleep()
 
         cap.release()
         cv2.destroyAllWindows()

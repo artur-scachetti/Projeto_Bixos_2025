@@ -40,7 +40,7 @@ pid_ctrl_block_handle_t init_pid(motor_side_t motor)
 esp_err_t pid_calculate(pid_ctrl_block_handle_t pid, motor_side_t motor, float target_rads, float* inc_value, pcnt_unit_handle_t encoder)
 {
     float conversion_rate = 0.00475;
-    float current_rads = pulse_count(encoder) * conversion_rate * 0.05;     // (ticks/0.05)*(rad/ticks)*0.05 = rad/s
+    float current_rads = pulse_count(encoder) * conversion_rate / 0.05;     // (ticks/0.05)*(rad/ticks)*0.05 = rad/s
 
     float error = target_rads - current_rads;
 

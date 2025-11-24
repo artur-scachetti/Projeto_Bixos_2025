@@ -5,6 +5,8 @@ import message_filters
 from std_msgs.msg import Float32
 from geometry_msgs.msg import Point, Twist
 
+from hardware_interface import RobotHardwareInterface
+
 
 class NavigationNode():
 
@@ -55,7 +57,6 @@ class NavigationNode():
 
         self.update_navigation()
 
-    
     def exp_model(y, a, b, c):
         return a * np.exp(b * y) + c
     
@@ -74,9 +75,8 @@ class NavigationNode():
         y = np.clip(y, 0, frame_height-1)
 
         self.D = self.estimate_distances(y, params)
-        self.D_rad = self.D / self.w_radius
 
-        self.collision_time = self.D_rad / current_vel if current_vel != 0 else -1
+        self.collision_time = self.D / self.current_vel.linear.x if current_vel.linear.x != 0 else -1
 
         if self.D <= (self.base_width/2):
             status = 'C'
@@ -170,10 +170,10 @@ class NavigationNode():
 
     
     def run(self):
+
+        rospy.loginfo('Navegador iniciado...')
         
         while not rospy.is_shutdown():
-
-            rospy.loginfo('Navegador iniciado...')
 
             self.update_navigation()
 
@@ -183,6 +183,9 @@ class NavigationNode():
 if __name__ == "__main__":
 
     try:
+        hw = RobotHardwareInterface()
+        hw._read_data_loop()
+
         nav = NavigationNode()
         nav.run()
     
