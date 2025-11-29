@@ -15,12 +15,11 @@ class NavigationNode():
         rospy.init_node('navigator_node', anonymous=True)
         self.rate = rospy.Rate(10)
 
-        self.callibrate_params = (0,0,0)
-        self.correction_lim = 0.0
+        self.callibrate_params = (3.406410147905296e-16,0.9999999998947352,1.0)
 
         self.wheel_radius = 0.0485          # EM METROS
         self.base_width = 0.38              # EM METROS
-        self.max_speed = 15                 # EM METROS/SEGUNDO
+        self.max_speed = 0.2                # EM METROS/SEGUNDO
         self.std_vel = self.max_speed/2     # EM METROS/SEGUNDO
 
         self.current_vel = Twist()
@@ -37,10 +36,11 @@ class NavigationNode():
 
         rospy.Subscriber('/esp/current_vel', Twist, self.current_vel_cb)
 
-        sub_angle = message_filters.Subscriber('/vision/min_angle', Float32)
-        sub_intersection = message_filters.Subscriber('/vision/intersection', Point())
+        sub_angle_c = message_filters.Subscriber('/vision/min_angle_c', Float32)
+        sub_angle_r = message_filters.Subscriber('/vision/min_angle_r', Float32)
+        sub_intersection_c = message_filters.Subscriber('/vision/intersection_c', Point())
 
-        self.ts = message_filters.ApproximateTimeSynchronizer([sub_angle, sub_intersection],
+        self.ts = message_filters.ApproximateTimeSynchronizer([sub_angle_c, sub_angle_r, sub_intersection_c],
                                                          queue_size=10, slop= 0.1)
         
         self.ts.registerCallback(self.synced_cb)
@@ -50,10 +50,11 @@ class NavigationNode():
         self.current_vel.linear.x = msg.linear.x
         self.current_vel.angular.z = msg.angular.z
 
-    def synched_cb(self, angle_msg, intersection_msg):
+    def synched_cb(self, angle_c_msg, angle_r_msg, intersection_c_msg):
 
-        self.angle = angle_msg.data
-        self.intersection = intersection_msg.data
+        self.angle_c = angle_c_msg.data
+        self.angle_r = angle_r_msg.data
+        self.intersection_c = intersection_c_msg.data
 
         self.update_navigation()
 
@@ -74,110 +75,49 @@ class NavigationNode():
             return float(self.exp_model(y_pixel_or_real_distance, a, b, c, 2))
     
     
-    def collision_manager(self, closest_inter, params, current_vel, frame_height= 360):
-
-        if closest_inter is None:
-            status = 'I'
-            return status
+    def collision_manager(self, params, frame_height= 360):
         
-        _, y = closest_inter
+        _, y, _ = self.intersection_c
         y = np.clip(y, 0, frame_height-1)               # EM PIXEIS
 
         self.D = self.estimate_distances(y, params)     # EM METROS
-
-        self.collision_time = self.D / self.current_vel.linear.x if current_vel.linear.x != 0 else -1   # EM SEGUNDOS
-
-        if self.D <= (self.base_width/2):
-            status = 'C'
-        
-        elif 0 < self.collision_time <= 0.5:
-            status = 'C'
-
-        elif (self.base_width/2) <= self.D <= (0.475 + (self.base_width/2)):
-            status = 'T'
-
-        elif (0.475 + (self.base_width/2)) <= self.D <= 1:
-            status = 'W'
-
-        elif self.D > 1:
-            status = 'F'
-
-        return status
     
 
     def update_navigation(self):
 
-        status = self.collision_manager(self.intersection, self.params, self.current_vel.linear.x, 360)
-
-        if status == 'C':
-            self.critical_protocol()
-
-        elif status == 'T':
-            self.turn_protocol()
-        
-        else:
-            self.drive_protocol(status)
-
-        
-    def critical_protocol(self):
-
-        self.target_vel.linear.x = 0
-        self.target_vel.angular.z = 0
-        self.cmd_pub.publish(self.target_vel)
+        self.collision_manager(self.params, 360)
+        self.correction_protocol()
 
         self.rate.sleep()
 
-        error = (self.base_width/2) - self.D
+        # if self.D is not None:
+        #     if self.D > 75*np.sqrt(2)/2:
+        #         self.correction_protocol()
 
-        if error > 0:
-
-            self.target_vel.linear.x = -1*error
-            self.target_vel.angular.z = 0
-            self.cmd_pub.publish(self.target_vel)
-
-            time.sleep(1)
+        #     else:
+        #         self.turn_protocol()
         
-        else:
-            self.rate.sleep()
+        # else:
+        #     self.correction_protocol()
 
-    def drive_protocol(self, status):
+    def correction_protocol(self):
+        
+        kp = 5
+        error = self.angle_r - 90.0
+        
+        self.target_vel.linear.x = self.max_speed
+        self.target_vel.angular.z = kp*-1*error
 
-        if status == 'I':
-            self.target_vel.linear.x = self.std_vel
-            self.target_vel.angular.z = 0
+        self.cmd_pub(self.target_vel)
 
-        elif status == 'F':
-             
-            if 80 < self.angle < 100:
-                self.target_vel.linear.x = self.max_speed
-                self.target_vel.angular.z = 0
-                
-            else:
-                self.target_vel.linear.x = self.max_speed
-                self.target_vel.angular.z = (self.angle*np.pi)/180 if self.angle < 90 else -1*(self.angle*np.pi)/180
-            
-        elif status == 'W':
+    # def turn_protocol(self):
 
-            if 85 < self.angle < 95:
-                self.target_vel.linear.x = self.std_vel
-                self.target_vel.angular.z = 0
-                
-            else:
-                self.target_vel.linear.x = 0
-                self.target_vel.angular.z = (self.angle*np.pi)/180 if self.angle < 90 else -1*(self.angle*np.pi)/180
-           
+    #     target_vel = Twist()
+    #     target_vel.linear.x = 0
+    #     target_vel.angular.z = np.pi
 
-        self.cmd_pub.publish(self.target_vel)
-        self.rate.sleep()
-
-    def turn_protocol(self):
-
-        target_vel = Twist()
-        target_vel.linear.x = 0
-        target_vel.angular.z = np.pi
-
-        self.cmd_pub.publish(target_vel)
-        time.sleep(1)
+    #     self.cmd_pub.publish(target_vel)
+    #     time.sleep(1)
 
     
     def run(self):
