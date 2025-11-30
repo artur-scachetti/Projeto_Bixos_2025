@@ -1,0 +1,13 @@
+# Target labels
+ bootloader
+# Source files and their labels
+/home/artur/Documentos/PlatformIO/Projects/Teste/ESP-32/.pio/build/esp32doit-devkit-v1/CMakeFiles/bootloader
+/home/artur/Documentos/PlatformIO/Projects/Teste/ESP-32/.pio/build/esp32doit-devkit-v1/CMakeFiles/bootloader.rule
+/home/artur/Documentos/PlatformIO/Projects/Teste/ESP-32/.pio/build/esp32doit-devkit-v1/CMakeFiles/bootloader-complete.rule
+/home/artur/Documentos/PlatformIO/Projects/Teste/ESP-32/.pio/build/esp32doit-devkit-v1/bootloader-prefix/src/bootloader-stamp/bootloader-install.rule
+/home/artur/Documentos/PlatformIO/Projects/Teste/ESP-32/.pio/build/esp32doit-devkit-v1/bootloader-prefix/src/bootloader-stamp/bootloader-mkdir.rule
+/home/artur/Documentos/PlatformIO/Projects/Teste/ESP-32/.pio/build/esp32doit-devkit-v1/bootloader-prefix/src/bootloader-stamp/bootloader-download.rule
+/home/artur/Documentos/PlatformIO/Projects/Teste/ESP-32/.pio/build/esp32doit-devkit-v1/bootloader-prefix/src/bootloader-stamp/bootloader-update.rule
+/home/artur/Documentos/PlatformIO/Projects/Teste/ESP-32/.pio/build/esp32doit-devkit-v1/bootloader-prefix/src/bootloader-stamp/bootloader-patch.rule
+/home/artur/Documentos/PlatformIO/Projects/Teste/ESP-32/.pio/build/esp32doit-devkit-v1/bootloader-prefix/src/bootloader-stamp/bootloader-configure.rule
+/home/artur/Documentos/PlatformIO/Projects/Teste/ESP-32/.pio/build/esp32doit-devkit-v1/bootloader-prefix/src/bootloader-stamp/bootloader-build.rule

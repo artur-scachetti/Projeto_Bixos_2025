@@ -1,0 +1,20 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "~/Documentos/PlatformIO/Projects/Teste/ESP-32/include",
+                "~/Documentos/PlatformIO/Projects/Teste/ESP-32/lib/encoder",
+                "~/Documentos/PlatformIO/Projects/Teste/ESP-32/lib/PID",
+                "~/Documentos/PlatformIO/Projects/Teste/ESP-32/lib/h_bridge"
+            ],
+            "defines": [],
+            "compilerPath": "/usr/bin/gcc",
+            "cStandard": "c17",
+            "cppStandard": "gnu++14",
+            "intelliSenseMode": "linux-gcc-x64"
+        }
+    ],
+    "version": 4
+}
